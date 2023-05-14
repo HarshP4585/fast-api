@@ -11,7 +11,7 @@ app = FastAPI()
 # - force the (client/frontend) to send data in a schema that we expect
 # - using "pydantic" -> define schema (can be used with any python code, independent from fastAPI)
 
-class Post(BaseModel): # Post Model
+class Dummy(BaseModel): # Dummy Model
     # title: string
     # content: string
     
@@ -26,6 +26,6 @@ def get_data():
 
 @app.post("/post_data")
 # def post_data(payload: dict = Body(...)):
-def post_data(post_payload: Post):
+def post_data(dummy_post_payload: Dummy):
     # pydantic model -> dict
-    return {"created": post_payload.dict()}
+    return {"created": dummy_post_payload.dict()}
