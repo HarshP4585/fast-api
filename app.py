@@ -59,6 +59,10 @@ class Post(BaseModel):
     published: bool = True
     ratings: Optional[int] = None
 
+class PostUpdate(BaseModel):
+    title: Optional[str] = None
+    content: Optional[str] = None
+
 def find_post(id):
     for post in my_posts:
         if post["id"] == id:
@@ -95,8 +99,23 @@ def save_post(payload: Post):
     return {"created": payload_dict}
 
 @app.patch("/posts/{id}")
-def update_post(id: int):
-    pass
+def update_post(id: int, payload: PostUpdate):
+    post = find_post(id)
+    payload_dict = payload.dict()
+    if post:
+        for attr in post:
+            if attr in payload_dict and payload_dict[attr]:
+                post[attr] = payload_dict[attr]
+        return Response(
+            status_code=status.HTTP_200_OK,
+            content=json.dumps({"data": f"post with id: {id} updated"}),
+            media_type="application/json"
+        )
+    return Response(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content=json.dumps({"data": f"post with id: {id} not found"}),
+        media_type="application/json"
+    )
 
 @app.delete("/posts/{id}")
 def delete_post(id: int):
