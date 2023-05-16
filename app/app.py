@@ -1,116 +1,94 @@
 import json
-from fastapi import FastAPI, Response, status, HTTPException
-from fastapi.params import Body
+from fastapi import FastAPI, Response, status
 from pydantic import BaseModel
 from typing import Optional
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
 app = FastAPI()
 
-# Schema
-# - get all the values from the body
-# - data validation
-# - force the (client/frontend) to send data in a schema that we expect
-# - using "pydantic" -> define schema (can be used with any python code, independent from fastAPI)
+# Create connection
+# Create cursor
+# Execute SQL statements
+# Commit connection -> staging changes
+# Close cursor
+# Close connection
 
-# class Dummy(BaseModel): # Dummy Model
-#     # title: string
-#     # content: string
-    
-#     title: str
-#     content: str
-#     published: bool = True # optional field, default value
-#     rating: Optional[int] = None # optional field, default to None
+conn = cursor = None
 
-# @app.get("/get_data")
-# def get_data():
-#     return {"key": "value"}
-
-# @app.post("/post_data")
-# # def post_data(payload: dict = Body(...)):
-# def post_data(dummy_post_payload: Dummy):
-#     # pydantic model -> dict
-#     return {"created": dummy_post_payload.dict()}
-
-
-# CRUD
-# Create -> POST /posts
-# Read  -> GET /posts
-#       -> GET /posts/:id
-# Update -> PUT(all field to be sent)/PATCH(only field to be updated to be sent) /posts/:id
-# Delete -> DELETE /posts/:id
-
-id_counter = 3
-my_posts = [
-    {
-        "id": 1,
-        "title": "My First Post",
-        "content": "Excited..."
-    },
-    {
-        "id": 2,
-        "title": "Trip to Dubai",
-        "content": "Thrilled!"
-    }
-]
+try:
+    # host, databse, username, password
+    conn = psycopg2.connect(
+        host="localhost",
+        database="fastapi",
+        user="postgres",
+        password="test",
+        cursor_factory=RealDictCursor # ???
+    )
+    cursor = conn.cursor()
+    print("DB connection successfull!!!")
+except Exception as e:
+    print("DB connection failed...")
+    raise e
 
 class Post(BaseModel):
     title: str
     content: str
-    published: bool = True
-    ratings: Optional[int] = None
+    is_published: Optional[bool] = True
 
-class PostUpdate(BaseModel):
-    title: Optional[str] = None
-    content: Optional[str] = None
-
-def find_post(id):
-    for post in my_posts:
-        if post["id"] == id:
-            return post
+class PostUpdate(Post):
+    title: Optional[str]
+    content: Optional[str]
+    is_published: Optional[bool]
 
 @app.get("/posts")
 def get_posts():
-    return {"data": my_posts}
+    cursor.execute("SELECT * FROM posts")
+    posts = cursor.fetchall()
+    return {"data": posts}
 
 @app.get("/posts/{id}")
-# by default every path variables will be string but, we can add validations by providing the expected type
-def get_post(id: int, response: Response):
-    post = find_post(id)
+def get_post(id: int):
+    cursor.execute("SELECT * FROM posts WHERE id = %s", (id, ))
+    post = cursor.fetchone()
     if post:
         return {"data": post}
-
-    # response.status_code = status.HTTP_404_NOT_FOUND
-    # return {"data": "post not found"}
-    raise HTTPException(
+    return Response(
         status_code=status.HTTP_404_NOT_FOUND,
-        detail="post not found"
+        content=json.dumps({"data": f"post with id: {id} not found"}),
+        media_type="application/json"
     )
 
-@app.post(
-    "/posts",
-    status_code=status.HTTP_201_CREATED # set default status code
-)
-def save_post(payload: Post):
-    global id_counter
-    payload_dict = payload.dict()
-    payload_dict["id"] = id_counter
-    id_counter += 1
-    my_posts.append(payload_dict)
-    return {"created": payload_dict}
+@app.post("/posts")
+def create_post(payload: Post):
+    cursor.execute("""
+        INSERT INTO posts (title, content, is_published) VALUES 
+        (%s, %s, %s) RETURNING *
+    """, (payload.title, payload.content, payload.is_published))
+    post = cursor.fetchone()
+    conn.commit()
+    return Response(
+        status_code=status.HTTP_201_CREATED,
+        content=json.dumps({"data": post}, default=str),
+        media_type="application/json"
+    )
 
 @app.patch("/posts/{id}")
 def update_post(id: int, payload: PostUpdate):
-    post = find_post(id)
-    payload_dict = payload.dict()
+    query = "UPDATE posts SET "
+    key_values = []
+    values = []
+    for k, v in payload:
+        if v:
+            key_values.append(" {} = %s".format(k))
+            values.append(v)
+    query += ",".join(key_values) + " WHERE id = %s RETURNING *"
+    values.append(id)
+    cursor.execute(query, values)
+    post = cursor.fetchone()
+    conn.commit()
     if post:
-        for attr in post:
-            if attr in payload_dict and payload_dict[attr]:
-                post[attr] = payload_dict[attr]
-        return Response(
-            status_code=status.HTTP_200_OK,
-            content=json.dumps({"data": f"post with id: {id} updated"}),
-            media_type="application/json"
-        )
+        return {"data": post}
     return Response(
         status_code=status.HTTP_404_NOT_FOUND,
         content=json.dumps({"data": f"post with id: {id} not found"}),
@@ -119,12 +97,13 @@ def update_post(id: int, payload: PostUpdate):
 
 @app.delete("/posts/{id}")
 def delete_post(id: int):
-    post = find_post(id)
+    cursor.execute("DELETE FROM posts WHERE id = %s RETURNING *", (id, ))
+    post = cursor.fetchone()
+    conn.commit()
     if post:
-        my_posts.remove(post)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
     return Response(
         status_code=status.HTTP_404_NOT_FOUND,
-        content=json.dumps({"data": f"no post found with id: {id}"}),
+        content=json.dumps({"data": f"post with id: {id} not found"}),
         media_type="application/json"
     )
