@@ -36,7 +36,15 @@ class Post(BaseModel):
     content: str
     is_published: Optional[bool] = True
 
-class PostUpdate(Post):
+# limit the output content from the DB
+class PostOut(BaseModel):
+    id: int
+    title: str
+    content: str
+    is_published: bool
+    created_at: str # datetime???
+
+class PostUpdate(BaseModel):
     title: Optional[str]
     content: Optional[str]
     is_published: Optional[bool]
