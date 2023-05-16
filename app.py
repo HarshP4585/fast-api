@@ -1,4 +1,5 @@
-from fastapi import FastAPI
+import json
+from fastapi import FastAPI, Response, status, HTTPException
 from fastapi.params import Body
 from pydantic import BaseModel
 from typing import Optional
@@ -58,15 +59,33 @@ class Post(BaseModel):
     published: bool = True
     ratings: Optional[int] = None
 
+def find_post(id):
+    for post in my_posts:
+        if post["id"] == id:
+            return post
+
 @app.get("/posts")
 def get_posts():
     return {"data": my_posts}
 
 @app.get("/posts/{id}")
-def get_post(id: int):
-    return {}
+# by default every path variables will be string but, we can add validations by providing the expected type
+def get_post(id: int, response: Response):
+    post = find_post(id)
+    if post:
+        return {"data": post}
 
-@app.post("/posts")
+    # response.status_code = status.HTTP_404_NOT_FOUND
+    # return {"data": "post not found"}
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="post not found"
+    )
+
+@app.post(
+    "/posts",
+    status_code=status.HTTP_201_CREATED # set default status code
+)
 def save_post(payload: Post):
     global id_counter
     payload_dict = payload.dict()
@@ -74,3 +93,19 @@ def save_post(payload: Post):
     id_counter += 1
     my_posts.append(payload_dict)
     return {"created": payload_dict}
+
+@app.patch("/posts/{id}")
+def update_post(id: int):
+    pass
+
+@app.delete("/posts/{id}")
+def delete_post(id: int):
+    post = find_post(id)
+    if post:
+        my_posts.remove(post)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    return Response(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content=json.dumps({"data": f"no post found with id: {id}"}),
+        media_type="application/json"
+    )
