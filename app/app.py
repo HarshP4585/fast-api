@@ -1,48 +1,30 @@
 import json
 from fastapi import FastAPI, Response, status, Depends
-from pydantic import BaseModel
-from typing import Optional
 from sqlalchemy.orm import Session
-from . import models
+from .models import Post as PostSQLAlchemy
 from .database import get_db, engine
+from .dto import Post, PostUpdate
 
 app = FastAPI()
 
 # Create Tables from Models
 # models.Base.metadata.create_all(bind=engine)
 
-class Post(BaseModel):
-    title: str
-    content: str
-    is_published: Optional[bool] = True
-
-# limit the output content from the DB
-class PostOut(BaseModel):
-    id: int
-    title: str
-    content: str
-    is_published: bool
-    created_at: str # datetime???
-
-class PostUpdate(BaseModel):
-    title: Optional[str]
-    content: Optional[str]
-    is_published: Optional[bool]
-
+# Dummy controller using ORM
 # @app.get("/posts_ORM")
 # def get_posts_using_sqlalchemy(db: Session = Depends(get_db)):
-#     posts = db.query(models.Post).all()
+#     posts = db.query(PostSQLAlchemy).all()
 #     print(posts)
 #     return {"data": posts}
 
 @app.get("/posts")
 def get_posts(db: Session = Depends(get_db)):
-    posts = db.query(models.Post).all()
+    posts = db.query(PostSQLAlchemy).all()
     return {"data": posts}
 
 @app.get("/posts/{id}")
 def get_post(id: int, db: Session = Depends(get_db)):
-    post = db.query(models.Post).filter(models.Post.id == id).first()
+    post = db.query(PostSQLAlchemy).filter(PostSQLAlchemy.id == id).first()
     if post:
         return {"data": post}
     return Response(
@@ -53,7 +35,7 @@ def get_post(id: int, db: Session = Depends(get_db)):
 
 @app.post("/posts")
 def create_post(payload: Post, db: Session = Depends(get_db)):
-    post = models.Post(**payload.dict())
+    post = PostSQLAlchemy(**payload.dict())
     db.add(post)
     db.commit()
     db.refresh(post)
@@ -65,7 +47,7 @@ def create_post(payload: Post, db: Session = Depends(get_db)):
 
 @app.patch("/posts/{id}")
 def update_post(id: int, payload: PostUpdate, db: Session = Depends(get_db)):
-    post = db.query(models.Post).filter(models.Post.id == id)
+    post = db.query(PostSQLAlchemy).filter(PostSQLAlchemy.id == id)
     post_data = post.first()
     if post_data:
         to_update = {k: v for k, v in payload if v is not None}
@@ -81,7 +63,7 @@ def update_post(id: int, payload: PostUpdate, db: Session = Depends(get_db)):
 
 @app.delete("/posts/{id}")
 def delete_post(id: int, db: Session = Depends(get_db)):
-    post = db.query(models.Post).filter(models.Post.id == id)
+    post = db.query(PostSQLAlchemy).filter(PostSQLAlchemy.id == id)
     if post.first():
         post.delete(synchronize_session=False)
         db.commit()
