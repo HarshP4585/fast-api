@@ -1,5 +1,6 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from typing import Optional
+from datetime import datetime
 
 # DTO: Data Transfer Objects -> for request and response
 
@@ -21,3 +22,18 @@ class PostOut(PostBase):
     id: int
     is_published: bool
     created_at: str # datetime???
+
+class UserBase(BaseModel):
+    email: EmailStr
+    password: str
+
+class User(UserBase):
+    pass
+
+class UserOut(BaseModel):
+    id: int
+    email: str
+    created_at: datetime
+
+    class Config:
+        orm_mode = True
