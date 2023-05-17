@@ -1,35 +1,15 @@
 import json
-from fastapi import FastAPI, Response, status
+from fastapi import FastAPI, Response, status, Depends
 from pydantic import BaseModel
 from typing import Optional
-import psycopg2
-from psycopg2.extras import RealDictCursor
+from sqlalchemy.orm import Session
+from . import models
+from .database import get_db, engine
 
 app = FastAPI()
 
-# Create connection
-# Create cursor
-# Execute SQL statements
-# Commit connection -> staging changes
-# Close cursor
-# Close connection
-
-conn = cursor = None
-
-try:
-    # host, databse, username, password
-    conn = psycopg2.connect(
-        host="localhost",
-        database="fastapi",
-        user="postgres",
-        password="test",
-        cursor_factory=RealDictCursor # ???
-    )
-    cursor = conn.cursor()
-    print("DB connection successfull!!!")
-except Exception as e:
-    print("DB connection failed...")
-    raise e
+# Create Tables from Models
+# models.Base.metadata.create_all(bind=engine)
 
 class Post(BaseModel):
     title: str
@@ -49,16 +29,20 @@ class PostUpdate(BaseModel):
     content: Optional[str]
     is_published: Optional[bool]
 
+# @app.get("/posts_ORM")
+# def get_posts_using_sqlalchemy(db: Session = Depends(get_db)):
+#     posts = db.query(models.Post).all()
+#     print(posts)
+#     return {"data": posts}
+
 @app.get("/posts")
-def get_posts():
-    cursor.execute("SELECT * FROM posts")
-    posts = cursor.fetchall()
+def get_posts(db: Session = Depends(get_db)):
+    posts = db.query(models.Post).all()
     return {"data": posts}
 
 @app.get("/posts/{id}")
-def get_post(id: int):
-    cursor.execute("SELECT * FROM posts WHERE id = %s", (id, ))
-    post = cursor.fetchone()
+def get_post(id: int, db: Session = Depends(get_db)):
+    post = db.query(models.Post).filter(models.Post.id == id).first()
     if post:
         return {"data": post}
     return Response(
@@ -68,13 +52,11 @@ def get_post(id: int):
     )
 
 @app.post("/posts")
-def create_post(payload: Post):
-    cursor.execute("""
-        INSERT INTO posts (title, content, is_published) VALUES 
-        (%s, %s, %s) RETURNING *
-    """, (payload.title, payload.content, payload.is_published))
-    post = cursor.fetchone()
-    conn.commit()
+def create_post(payload: Post, db: Session = Depends(get_db)):
+    post = models.Post(**payload.dict())
+    db.add(post)
+    db.commit()
+    db.refresh(post)
     return Response(
         status_code=status.HTTP_201_CREATED,
         content=json.dumps({"data": post}, default=str),
@@ -82,21 +64,15 @@ def create_post(payload: Post):
     )
 
 @app.patch("/posts/{id}")
-def update_post(id: int, payload: PostUpdate):
-    query = "UPDATE posts SET "
-    key_values = []
-    values = []
-    for k, v in payload:
-        if v:
-            key_values.append(" {} = %s".format(k))
-            values.append(v)
-    query += ",".join(key_values) + " WHERE id = %s RETURNING *"
-    values.append(id)
-    cursor.execute(query, values)
-    post = cursor.fetchone()
-    conn.commit()
-    if post:
-        return {"data": post}
+def update_post(id: int, payload: PostUpdate, db: Session = Depends(get_db)):
+    post = db.query(models.Post).filter(models.Post.id == id)
+    post_data = post.first()
+    if post_data:
+        to_update = {k: v for k, v in payload if v is not None}
+        post.update(to_update, synchronize_session=False)
+        db.commit()
+        db.refresh(post_data)
+        return {"data": post_data}
     return Response(
         status_code=status.HTTP_404_NOT_FOUND,
         content=json.dumps({"data": f"post with id: {id} not found"}),
@@ -104,11 +80,11 @@ def update_post(id: int, payload: PostUpdate):
     )
 
 @app.delete("/posts/{id}")
-def delete_post(id: int):
-    cursor.execute("DELETE FROM posts WHERE id = %s RETURNING *", (id, ))
-    post = cursor.fetchone()
-    conn.commit()
-    if post:
+def delete_post(id: int, db: Session = Depends(get_db)):
+    post = db.query(models.Post).filter(models.Post.id == id)
+    if post.first():
+        post.delete(synchronize_session=False)
+        db.commit()
         return Response(status_code=status.HTTP_204_NO_CONTENT)
     return Response(
         status_code=status.HTTP_404_NOT_FOUND,
