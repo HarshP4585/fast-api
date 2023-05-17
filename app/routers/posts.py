@@ -5,7 +5,9 @@ from ..database import get_db
 from ..models import Post as PostSQLAlchemy
 from ..dto import Post, PostUpdate
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/posts"
+)
 
 # Dummy controller using ORM
 # @router.get("/posts_ORM")
@@ -14,12 +16,12 @@ router = APIRouter()
 #     print(posts)
 #     return {"data": posts}
 
-@router.get("/posts")
+@router.get("/")
 def get_posts(db: Session = Depends(get_db)):
     posts = db.query(PostSQLAlchemy).all()
     return {"data": posts}
 
-@router.get("/posts/{id}")
+@router.get("/{id}")
 def get_post(id: int, db: Session = Depends(get_db)):
     post = db.query(PostSQLAlchemy).filter(PostSQLAlchemy.id == id).first()
     if post:
@@ -30,7 +32,7 @@ def get_post(id: int, db: Session = Depends(get_db)):
         media_type="application/json"
     )
 
-@router.post("/posts")
+@router.post("/")
 def create_post(payload: Post, db: Session = Depends(get_db)):
     post = PostSQLAlchemy(**payload.dict())
     db.add(post)
@@ -42,7 +44,7 @@ def create_post(payload: Post, db: Session = Depends(get_db)):
         media_type="application/json"
     )
 
-@router.patch("/posts/{id}")
+@router.patch("/{id}")
 def update_post(id: int, payload: PostUpdate, db: Session = Depends(get_db)):
     post = db.query(PostSQLAlchemy).filter(PostSQLAlchemy.id == id)
     post_data = post.first()
@@ -58,7 +60,7 @@ def update_post(id: int, payload: PostUpdate, db: Session = Depends(get_db)):
         media_type="application/json"
     )
 
-@router.delete("/posts/{id}")
+@router.delete("/{id}")
 def delete_post(id: int, db: Session = Depends(get_db)):
     post = db.query(PostSQLAlchemy).filter(PostSQLAlchemy.id == id)
     if post.first():

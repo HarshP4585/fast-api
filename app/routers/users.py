@@ -6,9 +6,11 @@ from ..models import User as UserSQLAlchemy
 from ..dto import User, UserOut
 from ..utils import hash
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/users"
+)
 
-@router.post("/users", response_model=UserOut)
+@router.post("/", response_model=UserOut)
 def create_user(payload: User, db: Session = Depends(get_db)):
     user = UserSQLAlchemy(**payload.dict())
     user.password = hash(user.password)
@@ -22,7 +24,7 @@ def create_user(payload: User, db: Session = Depends(get_db)):
         media_type="application/json"
     )
 
-@router.get("/users/{id}")
+@router.get("/{id}")
 def get_user(id: int, db: Session = Depends(get_db)):
     user = db.query(UserSQLAlchemy).filter(UserSQLAlchemy.id == id).first()
     if user:
