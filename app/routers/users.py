@@ -7,7 +7,8 @@ from ..dto import User, UserOut
 from ..utils import hash
 
 router = APIRouter(
-    prefix="/users"
+    prefix="/users",
+    tags=["Users"]
 )
 
 @router.post("/", response_model=UserOut)

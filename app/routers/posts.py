@@ -6,7 +6,8 @@ from ..models import Post as PostSQLAlchemy
 from ..dto import Post, PostUpdate
 
 router = APIRouter(
-    prefix="/posts"
+    prefix="/posts",
+    tags=["Posts"]
 )
 
 # Dummy controller using ORM
