@@ -1,12 +1,12 @@
 from fastapi import FastAPI
 from . import models
 from .database import engine
-from .routers import posts, users, authentication
+from .routers import accounts, posts, users
 
 app = FastAPI()
 app.include_router(posts.router)
 app.include_router(users.router)
-app.include_router(authentication.router)
+app.include_router(accounts.router)
 
 # Create Tables from Models
 # models.Base.metadata.create_all(bind=engine)
@@ -28,3 +28,8 @@ app.include_router(authentication.router)
 # find user from the username and get hashed password
 # verify hased password with the plaintext password by hashing
 # if passwords are matched, return token
+
+# Verification process
+# Create function for verifying access token by decoding the JWT and return user if the token is valid + not expired
+# add a variable dependency of (get user function) in the controller definition
+# if the user variable is valid, then continue the operation else, raise auth error

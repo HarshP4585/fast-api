@@ -25,6 +25,11 @@ def verify_access_token(token: str):
     # how expire will work?
     try:
         payload = jwt.decode(token, SECRET_KEY, ALGORITHM)
+        
+        # verify the expiry of the token
+        if payload.get("expire", -1) < time.time():
+            raise JWTError("token expired")
+        
     except JWTError:
         # return -1
         return TokenData(id = -1)
