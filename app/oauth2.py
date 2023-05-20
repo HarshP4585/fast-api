@@ -1,8 +1,11 @@
 from fastapi import Depends, status
 from fastapi.security.oauth2 import OAuth2PasswordBearer
+from sqlalchemy.orm import Session
 from jose import JWTError, jwt
 import time
 from .dto import TokenData
+from .database import get_db
+from .models import User as UserSQLAlchemy
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
@@ -23,16 +26,22 @@ def verify_access_token(token: str):
     try:
         payload = jwt.decode(token, SECRET_KEY, ALGORITHM)
     except JWTError:
-        return -1
+        # return -1
+        return TokenData(id = -1)
 
     user_id = payload.get("user_id")
     
     if not user_id:
-        return -1
+        # return -1
+        return TokenData(id = -1)
     
-    # token_data = TokenData(id=user_id)
-    return user_id
+    # return user_id
+    return TokenData(id = user_id)
 
 # embeded as dependency in controllers to verify token and get user id
-def get_current_user(token: str = Depends(oauth2_scheme)):
-    return verify_access_token(token)
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    token = verify_access_token(token)
+    
+    # fetch and return user from the database using user id
+    user = db.query(UserSQLAlchemy).filter(UserSQLAlchemy.id == token.id).first()
+    return user

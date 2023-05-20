@@ -1,8 +1,9 @@
 import json
+from typing import Optional
 from fastapi import Response, Depends, status, APIRouter
 from sqlalchemy.orm import Session
 from ..database import get_db
-from ..models import Post as PostSQLAlchemy
+from ..models import Post as PostSQLAlchemy, User as UserSQLAlchemy
 from ..dto import Post, PostUpdate
 from ..oauth2 import get_current_user
 
@@ -35,8 +36,8 @@ def get_post(id: int, db: Session = Depends(get_db)):
     )
 
 @router.post("/")
-def create_post(payload: Post, db: Session = Depends(get_db), user_id: int = Depends(get_current_user)):
-    if user_id == -1:
+def create_post(payload: Post, db: Session = Depends(get_db), user: Optional[UserSQLAlchemy] = Depends(get_current_user)):
+    if not user:
         return Response(
             status_code=status.HTTP_401_UNAUTHORIZED,
             content=json.dumps({"data": "Not authorized to access the resource"}),
