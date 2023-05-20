@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Post as PostSQLAlchemy
 from ..dto import Post, PostUpdate
+from ..oauth2 import get_current_user
 
 router = APIRouter(
     prefix="/posts",
@@ -34,14 +35,21 @@ def get_post(id: int, db: Session = Depends(get_db)):
     )
 
 @router.post("/")
-def create_post(payload: Post, db: Session = Depends(get_db)):
+def create_post(payload: Post, db: Session = Depends(get_db), user_id: int = Depends(get_current_user)):
+    if user_id == -1:
+        return Response(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content=json.dumps({"data": "Not authorized to access the resource"}),
+            media_type="application/json"
+        )
     post = PostSQLAlchemy(**payload.dict())
     db.add(post)
     db.commit()
     db.refresh(post)
+    post_dict = Post.from_orm(post).dict()
     return Response(
         status_code=status.HTTP_201_CREATED,
-        content=json.dumps({"data": post}, default=str),
+        content=json.dumps({"data": post_dict}, default=str),
         media_type="application/json"
     )
 

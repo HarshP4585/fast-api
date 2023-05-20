@@ -12,6 +12,10 @@ class PostBase(BaseModel):
 class Post(PostBase):
     pass
 
+    # convert to pydantic model from ORM model (SQLAlchemy)
+    class Config:
+        orm_mode = True
+
 class PostUpdate(PostBase):
     title: Optional[str]
     content: Optional[str]
@@ -41,3 +45,10 @@ class UserOut(BaseModel):
 class Login(BaseModel):
     email: EmailStr
     password: str
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    id: int
