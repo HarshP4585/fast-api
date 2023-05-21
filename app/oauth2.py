@@ -6,12 +6,13 @@ import time
 from .dto import TokenData
 from .database import get_db
 from .models import User as UserSQLAlchemy
+from .config import settings
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
-SECRET_KEY = "de7130244b603febec8439c291764d296bcf46b0d4f880ecbc213804ff1cb95b"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRATION_TIME = 30
+SECRET_KEY = settings.secret_key
+ALGORITHM = settings.algorithm
+ACCESS_TOKEN_EXPIRATION_TIME = settings.access_token_expire_min
 
 def get_token(payload: dict):
     payload_copy = payload.copy()

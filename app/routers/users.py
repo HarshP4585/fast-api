@@ -29,7 +29,8 @@ def create_user(payload: User, db: Session = Depends(get_db)):
 def get_user(id: int, db: Session = Depends(get_db)):
     user = db.query(UserSQLAlchemy).filter(UserSQLAlchemy.id == id).first()
     if user:
-        user_out = UserOut(**{k: v for k, v in user.__dict__.items() if not k.startswith("_")})
+        # user_out = UserOut(**{k: v for k, v in user.__dict__.items() if not k.startswith("_")})
+        user_out = UserOut.from_orm(user)
         return Response(
             content=json.dumps({"data": user_out.dict()}, default=str),
             media_type="application/json"
