@@ -11,6 +11,7 @@ app.include_router(accounts.router)
 # Create Tables from Models
 # models.Base.metadata.create_all(bind=engine)
 
+
 # JWT
 # /login {username + password}
 # if creds are valid, sign/create a JWT token

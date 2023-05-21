@@ -21,11 +21,11 @@ router = APIRouter(
 #     return {"data": posts}
 
 @router.get("/")
-def get_posts(db: Session = Depends(get_db),
+def get_posts(db: Session = Depends(get_db), page: int = 1, page_size: int = 10,
             #   user: Optional[UserSQLAlchemy] = Depends(get_current_user)
               ):
     # get all users' posts
-    posts = db.query(PostSQLAlchemy).all()
+    posts = db.query(PostSQLAlchemy).order_by(PostSQLAlchemy.id).limit(page_size).offset(page - 1).all()
     
     # get current user's posts
     # posts = db.query(PostSQLAlchemy).filter(PostSQLAlchemy.user_id == user.id).all()
