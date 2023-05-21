@@ -33,3 +33,5 @@ app.include_router(accounts.router)
 # Create function for verifying access token by decoding the JWT and return user if the token is valid + not expired
 # add a variable dependency of (get user function) in the controller definition
 # if the user variable is valid, then continue the operation else, raise auth error
+
+# how to deal with null values for FK in existing table data?
