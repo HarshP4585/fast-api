@@ -24,3 +24,11 @@ class User(Base):
     email = Column(String, nullable=False, unique=True)
     password = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=text("NOW()"))
+
+class Vote(Base):
+    # intermediate table of posts and users: many to many relationship
+    __tablename__ = "votes"
+
+    # composite key: user_id, post_id
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    post_id = Column(Integer, ForeignKey("posts.id", ondelete="CASCADE"), primary_key=True)
