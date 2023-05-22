@@ -3,6 +3,10 @@ from sqlalchemy import Column, Integer, String, Boolean, DateTime, text, Foreign
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
+# SQLAlchemy does not allow to update the tables in the database, as SQLAlchemy will look if the table exists in the db, if the table exists then Alchemy will not update the schema
+# In such scenarios, Database migration (using Alembic) is the way to go
+# Alembic is used to do incremental changes to the db
+
 class Post(Base):
     __tablename__ = 'posts'
     id = Column(Integer, primary_key=True, nullable=False)

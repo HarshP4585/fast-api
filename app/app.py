@@ -13,6 +13,14 @@ app.include_router(votes.router)
 # models.Base.metadata.create_all(bind=engine)
 
 
+# TODO -----
+# Relationships 1-1, 1-many, ...
+# Join columns in SQLAlchemy
+# Transactions in DB
+# Async
+# -----
+
+
 # JWT
 # /login {username + password}
 # if creds are valid, sign/create a JWT token
@@ -37,3 +45,14 @@ app.include_router(votes.router)
 # if the user variable is valid, then continue the operation else, raise auth error
 
 # how to deal with null values for FK in existing table data?
+
+# Alembic setup
+# alembic init
+# import Alchemy Base (from the models file as it alembic will have access to read models as well) class in the env.py file and update target_metadata
+# update sqlalchemy.url in the alembic.ini file with the database url
+#   Not recommended because of security reasons
+#   Hence, override "sqlalchemy.url" in the env.py and use "set_main_option" of the config and set the database url with env variables
+# alembic revision -m "descriptive message for migration"
+#   This will create a revision python file where upgrade and downgrade steps are to be mentioned
+# reflect migration to the db -> alembic upgrade revision_id
+# use --autogenerate flag to sync changes between DB and SQLAlchemy models
