@@ -47,6 +47,13 @@ class PostOut(PostBase):
     class Config:
         orm_mode = True
 
+class PostOutJoin(BaseModel):
+    Post: PostOut
+    votes: int
+    
+    class Config:
+        orm_mode = True
+
 class Login(BaseModel):
     email: EmailStr
     password: str

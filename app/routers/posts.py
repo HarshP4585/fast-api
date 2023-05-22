@@ -3,9 +3,10 @@ from typing import Optional, List
 from fastapi import Response, Depends, status, APIRouter
 from pydantic import parse_obj_as
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import func
 from ..database import get_db
-from ..models import Post as PostSQLAlchemy, User as UserSQLAlchemy
-from ..dto import Post, PostUpdate, PostOut
+from ..models import Post as PostSQLAlchemy, User as UserSQLAlchemy, Vote as VoteSQLAlchemy
+from ..dto import Post, PostUpdate, PostOut, PostOutJoin
 from ..oauth2 import get_current_user
 
 router = APIRouter(
@@ -24,20 +25,41 @@ router = APIRouter(
 def get_posts(db: Session = Depends(get_db), page: int = 1, page_size: int = 10,
             #   user: Optional[UserSQLAlchemy] = Depends(get_current_user)
               ):
-    # get all users' posts
-    posts = db.query(PostSQLAlchemy).order_by(PostSQLAlchemy.id).limit(page_size).offset(page - 1).all()
     
-    # get current user's posts
-    # posts = db.query(PostSQLAlchemy).filter(PostSQLAlchemy.user_id == user.id).all()
+    # # get all users' posts
+    # posts = db.query(PostSQLAlchemy).order_by(PostSQLAlchemy.id).limit(page_size).offset(page - 1).all()
     
-    posts_out_pydantic = parse_obj_as(List[PostOut], posts)
-    return {"data": posts_out_pydantic}
+    # # get current user's posts
+    # # posts = db.query(PostSQLAlchemy).filter(PostSQLAlchemy.user_id == user.id).all()
+    
+    # posts_out_pydantic = parse_obj_as(List[PostOut], posts)
+    # return Response(
+    #     content=json.dumps({"data": [p.dict() for p in posts_out_pydantic]}, default=str),
+    #     media_type="application/json"
+    # )
+    
+    # UPDATE: Return Votes on the Post by joining votes and posts table
+    
+    # get all users' posts with vote count
+    posts = db.query(PostSQLAlchemy, func.count(VoteSQLAlchemy.post_id).label("votes")).join(VoteSQLAlchemy, PostSQLAlchemy.id == VoteSQLAlchemy.post_id, isouter=True).group_by(PostSQLAlchemy.id).order_by(PostSQLAlchemy.id).limit(page_size).offset(page - 1).all()
+    
+    posts_out_pydantic = parse_obj_as(List[PostOutJoin], posts)
+    
+    return Response(
+        content=json.dumps({"data": [p.dict() for p in posts_out_pydantic]}, default=str),
+        media_type="application/json"
+    )
 
 @router.get("/{id}")
 def get_post(id: int, db: Session = Depends(get_db)):
-    post = db.query(PostSQLAlchemy).filter(PostSQLAlchemy.id == id).first()
+    # post = db.query(PostSQLAlchemy).filter(PostSQLAlchemy.id == id).first()
+    
+    # UPDATE: Return Votes on the Post by joining votes and posts table
+    post = db.query(PostSQLAlchemy, func.count(VoteSQLAlchemy.post_id).label("votes")).join(VoteSQLAlchemy, PostSQLAlchemy.id == VoteSQLAlchemy.post_id, isouter=True).group_by(PostSQLAlchemy.id).filter(PostSQLAlchemy.id == id).first()
+    
     if post:
-        post_out = PostOut.from_orm(post)
+        # post_out = PostOut.from_orm(post)
+        post_out = PostOutJoin.from_orm(post)
         return {"data": post_out.dict()}
     return Response(
         status_code=status.HTTP_404_NOT_FOUND,
