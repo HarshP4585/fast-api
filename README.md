@@ -1,1 +1,1 @@
-Project using FastAPI
+Social Media Project using Python and FastAPI
