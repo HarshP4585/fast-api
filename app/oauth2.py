@@ -5,7 +5,7 @@ from jose import JWTError, jwt
 import time
 from .dto import TokenData
 from .database import get_db
-from .models import User as UserSQLAlchemy
+from .models import User as UserSQLAlchemy, RevokedToken
 from .config import settings
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
@@ -46,6 +46,11 @@ def verify_access_token(token: str):
 
 # embeded as dependency in controllers to verify token and get user id
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    # if token is revoked, return None which will raise error and not let user to access the resources
+    db_token = db.query(RevokedToken).filter(RevokedToken.token == token).first()
+    if db_token:
+        return None
+    
     token = verify_access_token(token)
     
     # fetch and return user from the database using user id

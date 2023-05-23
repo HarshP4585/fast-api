@@ -1,12 +1,12 @@
 import json
-from fastapi import APIRouter, Depends, status, Response
+from fastapi import APIRouter, Depends, status, Response, Request
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from ..dto import Login, Token, Register, UserOut
-from ..models import User as UserSQLAlchemy
+from ..models import User as UserSQLAlchemy, RevokedToken
 from ..database import get_db
 from ..utils import verify, hash
-from ..oauth2 import get_token
+from ..oauth2 import get_token, get_current_user
 
 router = APIRouter(
     tags=["Accounts"]
@@ -59,3 +59,11 @@ def login(payload: Login, db: Session = Depends(get_db)):
 #         content=json.dumps({"data": new_user_dict}),
 #         media_type="application/json"
 #     )
+
+@router.post("/revoke-token")
+def revoke_access_token(request: Request, db: Session = Depends(get_db), user: UserSQLAlchemy = Depends(get_current_user)):
+    # breakpoint()
+    db.add(RevokedToken(token = request.headers.get("authorization").split(" ")[1]))
+    db.commit()
+    
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
