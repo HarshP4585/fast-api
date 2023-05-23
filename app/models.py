@@ -36,3 +36,4 @@ class Vote(Base):
     # composite key: user_id, post_id
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     post_id = Column(Integer, ForeignKey("posts.id", ondelete="CASCADE"), primary_key=True)
+    comment = Column(String, nullable=True)
