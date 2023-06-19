@@ -29,10 +29,12 @@ app.include_router(votes.router)
 
 
 # TODO -----
+# Using sessions
 # Relationships 1-1, 1-many, ...
 # Join columns in SQLAlchemy
 # Transactions in DB
 # Async
+# Create Microservices
 # -----
 
 
@@ -81,3 +83,45 @@ app.include_router(votes.router)
 # cors allow to make request from web browser on one domain to a server on different domain
 # by default our API will only allow web browsers running on the same domain to make request to it
 # add cors middleware to the app
+
+# **************************************
+# https://www.youtube.com/watch?v=0sOvCWFmrtA&t=40468s
+# https://www.youtube.com/watch?v=IZUjJ3rPY1E
+# https://www.youtube.com/watch?v=Cy9fAvsXGZA
+# **************************************
+
+# DEPLOYMENT
+
+# 1. Heroku
+
+# install heroku cli
+# heroku create <app-name>
+#   To create an app, verify your account by adding payment information. Verify now at https://heroku.com/verify
+# git remote -> list remote destinations of the repo
+# git push heroku main -> push code to heroku and create instance of the app
+
+# how to run the app?
+# create a file Procfile for command to start application
+# web: uvicorn app.app:app --host=0.0.0.0 --port=${PORT:-5000}
+# push the changes to the git again with the Procfile
+
+# add postgres db on heroku
+# https://devcenter.heroku.com/articles/heroku-postgresql
+# heroku addons:create heroku-postgresql:<PLAN-NAME=hobby-dev>
+# save db creds from heroku like: url, username, password, etc.
+# create config vars ie. env vars for heroku as per the code
+# restart app -> heroku ps:restart
+# app info -> heroku apps:info <APP-NAME>
+
+# create alembic migrations for creating prod databases like dev env
+# upgrade the alembic revisions by runnning command:
+#   heroku run "alembic upgrade head"
+
+# pushing changes to heroku: "git push heroku main" (after adding, commiting and pushing onto git)
+
+# 2. Ubuntu Server
+
+# Using NGINX as proxy webserver (gateway)
+# Can handle SSL termination
+
+# HTTPS -> NGINX -> HTTP -> SERVICE
